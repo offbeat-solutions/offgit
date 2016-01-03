@@ -1,10 +1,13 @@
 ﻿using System.ComponentModel.Composition;
 using System.IO.Abstractions;
+using System.Linq;
 using System.Threading.Tasks;
+using Caliburn.Micro;
 using Gemini.Framework;
 using Gemini.Framework.Services;
 using Gemini.Modules.MainWindow.Views;
 using Gemini.Modules.Shell.Views;
+using Offbeat.GitWorkbench.RepositoryManagement;
 
 namespace Offbeat.GitWorkbench
 {
@@ -20,6 +23,12 @@ namespace Offbeat.GitWorkbench
 			this.shell = shell;
 			this.stateManager = stateManager;
 			this.mainWindow = mainWindow;
+
+			this.shell.AttemptingDeactivation += ShellDeactivating;
+		}
+
+		private void ShellDeactivating(object sender, DeactivationEventArgs e) {
+			stateManager.SaveSettingsAsync();
 		}
 
 		public override void Initialize() {
@@ -27,10 +36,20 @@ namespace Offbeat.GitWorkbench
 
 			mainWindow.Title = "OffGit";
 
-			stateManager.LoadBookmarksAsync()
+			stateManager.LoadSettingsAsync()
 				.ContinueWith(t => {
-					foreach (var repository in t.Result) {
-						shell.OpenDocument(repository);
+					foreach (var b in t.Result.Bookmarks) {
+						shell.OpenDocument(new GitRepositoryViewModel(b.Path, b.Name) {
+							DetailsViewHeight = b.DetailsViewHeight,
+							RepositoryId = b.Id
+						});
+					}
+
+					if (t.Result.SelectedRepository.HasValue) {
+						var activeRepository = shell.Documents.OfType<GitRepositoryViewModel>()
+							.SingleOrDefault(d => d.RepositoryId == t.Result.SelectedRepository.Value);
+
+						shell.OpenDocument(activeRepository);
 					}
 				});
 		}

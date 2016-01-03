@@ -1,0 +1,115 @@
+﻿<UserControl x:Class="Offbeat.GitWorkbench.RepositoryManagement.UncommittedChangesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Offbeat.GitWorkbench.RepositoryManagement"
+             xmlns:cal="http://www.caliburnproject.org"
+             mc:Ignorable="d" 
+			 MinHeight="300"
+             d:DesignHeight="300" d:DesignWidth="300">
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition />
+			<RowDefinition Height="Auto" />
+			<RowDefinition />
+		</Grid.RowDefinitions>
+		<Grid Grid.Row="0">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto" />
+				<RowDefinition Height="*" />
+			</Grid.RowDefinitions>
+			<TextBlock Grid.Row="0">Staged changes</TextBlock>
+			<ListView Grid.Row="1" ItemsSource="{Binding Index}">
+				<ListView.View>
+					<GridView>
+						<GridViewColumn>
+							<GridViewColumn.CellTemplate>
+								<DataTemplate>
+									<CheckBox IsChecked="True" cal:Message.Attach="Unstage($dataContext)" />
+								</DataTemplate>
+							</GridViewColumn.CellTemplate>
+							<GridViewColumn.HeaderTemplate>
+								<DataTemplate>
+									<CheckBox x:Name="UnstageAll" IsChecked="False"  Click="UnstageAllClicked" cal:Message.Attach="UnstageAll()" />
+								</DataTemplate>
+							</GridViewColumn.HeaderTemplate>
+						</GridViewColumn>
+						<GridViewColumn>
+							<GridViewColumn.CellTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding State}" />
+								</DataTemplate>
+							</GridViewColumn.CellTemplate>
+						</GridViewColumn>
+						<GridViewColumn Header="Path">
+							<GridViewColumn.CellTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding Path}" />
+								</DataTemplate>
+							</GridViewColumn.CellTemplate>
+						</GridViewColumn>
+					</GridView>
+				</ListView.View>
+			</ListView>
+		</Grid>
+
+		<GridSplitter Grid.Row="1" ShowsPreview="True" Height="5" HorizontalAlignment="Stretch" />
+
+		<Grid Grid.Row="2">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto" />
+				<RowDefinition Height="*" />
+			</Grid.RowDefinitions>
+			<TextBlock Grid.Row="0">Unstaged changes</TextBlock>
+			<ListView Grid.Row="1" ItemsSource="{Binding Changes}">
+				<ListView.View>
+					<GridView>
+						<GridViewColumn>
+							<GridViewColumn.CellTemplate>
+								<DataTemplate>
+									<CheckBox IsChecked="False" cal:Message.Attach="Stage($dataContext)" />
+								</DataTemplate>
+							</GridViewColumn.CellTemplate>
+							<GridViewColumn.HeaderTemplate>
+								<DataTemplate>
+									<CheckBox x:Name="StageAll" IsChecked="False" Click="StageAllClicked" cal:Message.Attach="StageAll()" />
+								</DataTemplate>
+							</GridViewColumn.HeaderTemplate>
+						</GridViewColumn>
+						<GridViewColumn>
+							<GridViewColumn.CellTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding State}" />
+								</DataTemplate>
+							</GridViewColumn.CellTemplate>
+						</GridViewColumn>
+						<GridViewColumn Header="Path">
+							<GridViewColumn.CellTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding Path}" />
+								</DataTemplate>
+							</GridViewColumn.CellTemplate>
+						</GridViewColumn>
+					</GridView>
+				</ListView.View>
+			</ListView>
+
+		</Grid>
+	</Grid>
+</UserControl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

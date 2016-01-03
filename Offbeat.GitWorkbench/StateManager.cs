@@ -13,8 +13,8 @@ using Offbeat.GitWorkbench.RepositoryManagement;
 
 namespace Offbeat.GitWorkbench {
 	public interface IStateManager {
-		Task SaveBookmarksAsync();
-		Task<IList<GitRepositoryViewModel>> LoadBookmarksAsync();
+		Task SaveSettingsAsync();
+		Task<RepositorySettings> LoadSettingsAsync();
 	}
 
 	[Export(typeof(IStateManager))]
@@ -34,31 +34,38 @@ namespace Offbeat.GitWorkbench {
 
 		}
 
-		public Task<IList<GitRepositoryViewModel>> LoadBookmarksAsync() {
+		public Task<RepositorySettings> LoadSettingsAsync() {
 			return Task.Run(() => {
 				try {
 					using (var input = new StreamReader(fileSystem.File.OpenRead(GetBookmarkFilePath()))) {
-						var bookmarks = (IList<RepositoryBookmark>)new JsonSerializer().Deserialize(input, typeof (List<RepositoryBookmark>));
+						return (RepositorySettings)new JsonSerializer().Deserialize(input, typeof (RepositorySettings));
 
-						return (IList<GitRepositoryViewModel>)bookmarks.Select(b => new GitRepositoryViewModel(b.Path)).ToList();
 					}
 				} catch (FileNotFoundException) {
-					return new List<GitRepositoryViewModel>();
+					return null;
 				}
 			});
 		}
 
-		public async Task SaveBookmarksAsync() {
-			var bookmarks = shell.Documents.OfType<GitRepositoryViewModel>()
-				.Select(d => new RepositoryBookmark() {
-					Path = d.Path
-				});
+		public async Task SaveSettingsAsync() {
+			var settings = new RepositorySettings() {
+				Bookmarks = shell.Documents.OfType<GitRepositoryViewModel>()
+					.Select(d => new RepositoryBookmark() {
+						Path = d.Path,
+						Name = d.DisplayName,
+						DetailsViewHeight = d.DetailsViewHeight,
+						Id = d.RepositoryId
+					}).ToList(),
+				SelectedRepository = shell.Documents
+					.OfType<GitRepositoryViewModel>()
+					.SingleOrDefault(d => d.IsActive)?.RepositoryId
+			};
 
 			await EnsureApplicationDirectory();
 
 			await Task.Run(() => {
-				using (var output = new StreamWriter(fileSystem.File.OpenWrite(GetBookmarkFilePath()))) {
-					new JsonSerializer().Serialize(output, bookmarks);
+				using (var output = new StreamWriter(fileSystem.File.Create(GetBookmarkFilePath()))) {
+					new JsonSerializer().Serialize(output, settings);
 				}
 			});
 		}
@@ -68,7 +75,12 @@ namespace Offbeat.GitWorkbench {
 		}
 
 		private string GetBookmarkFilePath() {
-			return fileSystem.Path.Combine(applicationDirectory, "bookmarks.json");
+			return fileSystem.Path.Combine(applicationDirectory, "settings.json");
 		}
+	}
+
+	public class RepositorySettings {
+		public Guid? SelectedRepository { get; set; }
+		public IList<RepositoryBookmark> Bookmarks { get; set; }
 	}
 }

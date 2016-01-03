@@ -46,6 +46,10 @@
       <HintPath>..\packages\Caliburn.Micro.2.0.2\lib\net45\Caliburn.Micro.Platform.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="DiffPlex, Version=1.2.0.0, Culture=neutral, PublicKeyToken=1d35e91d1bd7bc0f, processorArchitecture=MSIL">
+      <HintPath>..\packages\DiffPlex.1.2.1\lib\portable-net40+sl50+win+wpa81+wp80\DiffPlex.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Gemini, Version=0.6.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\GeminiWpf.0.6.2\lib\net45\Gemini.dll</HintPath>
       <Private>True</Private>
@@ -129,12 +133,22 @@
     </Compile>
     <Compile Include="Common\DictionaryConverter.cs" />
     <Compile Include="RepositoryBookmark.cs" />
+    <Compile Include="RepositoryManagement\FileStatusViewModel.cs" />
     <Compile Include="RepositoryManagement\GitRepositoryViewModel.cs" />
     <Compile Include="RepositoryManagement\GitRepositoryView.xaml.cs">
       <DependentUpon>GitRepositoryView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="RepositoryManagement\ICommitLogEntryViewModel.cs" />
     <Compile Include="RepositoryManagement\OpenRepositoryCommandDefinition.cs" />
     <Compile Include="RepositoryManagement\OpenRepositoryCommandHandler.cs" />
+    <Compile Include="RepositoryManagement\RevisionView.xaml.cs">
+      <DependentUpon>RevisionView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="RepositoryManagement\RevisionViewModel.cs" />
+    <Compile Include="RepositoryManagement\UncommittedChangesView.xaml.cs">
+      <DependentUpon>UncommittedChangesView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="RepositoryManagement\UncommittedChangesViewModel.cs" />
     <Compile Include="StateManager.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +185,14 @@
   </ItemGroup>
   <ItemGroup>
     <Page Include="RepositoryManagement\GitRepositoryView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RepositoryManagement\RevisionView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RepositoryManagement\UncommittedChangesView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

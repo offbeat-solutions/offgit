@@ -7,6 +7,7 @@
              xmlns:common="clr-namespace:Offbeat.GitWorkbench.Common"
              xmlns:generic="clr-namespace:System.Collections.Generic;assembly=mscorlib"
              xmlns:system="clr-namespace:System;assembly=mscorlib"
+             xmlns:cal="http://www.caliburnproject.org"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
 	<UserControl.Resources>
@@ -21,6 +22,7 @@
 					<system:Boolean>True</system:Boolean>
 				</common:VisibilityConverter.HiddenValue>
 			</common:VisibilityConverter>
+
 		</ResourceDictionary>
 	</UserControl.Resources>
 	<Grid>
@@ -68,27 +70,9 @@
 					</GridView>
 				</ListView.View>
 			</ListView>
-			<GridSplitter Grid.Row="1" ShowsPreview="True"></GridSplitter>
-			<ListView Grid.Row="2" ItemsSource="{Binding SelectedRevision.Changes}">
-				<ListView.View>
-					<GridView>
-						<GridViewColumn>
-							<GridViewColumn.CellTemplate>
-								<DataTemplate>
-									<TextBlock Text="{Binding State}" />
-								</DataTemplate>
-							</GridViewColumn.CellTemplate>
-						</GridViewColumn>
-						<GridViewColumn Header="Path">
-							<GridViewColumn.CellTemplate>
-								<DataTemplate>
-									<TextBlock Text="{Binding Path}" />
-								</DataTemplate>
-							</GridViewColumn.CellTemplate>
-						</GridViewColumn>
-					</GridView>
-				</ListView.View>
-			</ListView>
+			<GridSplitter Grid.Row="1" ShowsPreview="True"  Height="5" HorizontalAlignment="Stretch"></GridSplitter>
+			<ContentControl Grid.Row="2" cal:View.Model="{Binding SelectedRevision}" Height="{Binding DetailsViewHeight, Mode=TwoWay}" />
 		</Grid>
 	</Grid>
 </UserControl>
+

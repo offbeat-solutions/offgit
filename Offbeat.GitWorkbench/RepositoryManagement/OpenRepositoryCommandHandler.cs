@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.Composition;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Threading.Tasks;
 using Gemini.Framework.Commands;
@@ -13,6 +14,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 		[Import] private IStateManager stateManager;
 
+		[Import] private IFileSystem fileSystem;
+
 		public override async Task Run(Command command) {
 			var folderBrowserDialog = new VistaFolderBrowserDialog();
 			if (folderBrowserDialog.ShowDialog() != true) {
@@ -24,9 +27,11 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 				.OfType<GitRepositoryViewModel>()
 				.SingleOrDefault(repo => string.Equals(repo.Path, selectedPath, StringComparison.InvariantCultureIgnoreCase));
 
-			shell.OpenDocument(alreadyOpen ?? new GitRepositoryViewModel(selectedPath));
+			shell.OpenDocument(alreadyOpen ?? new GitRepositoryViewModel(selectedPath, fileSystem.Path.GetFileName(selectedPath)) {
+				RepositoryId = Guid.NewGuid()
+			});
 
-			await stateManager.SaveBookmarksAsync();
+			await stateManager.SaveSettingsAsync();
 		}
 	}
 }
