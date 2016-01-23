@@ -12,7 +12,7 @@
              d:DesignHeight="300" d:DesignWidth="300">
 	<UserControl.Resources>
 		<ResourceDictionary>
-			<BooleanToVisibilityConverter x:Key="booleanToVisibility" />
+			<BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
 
 			<common:VisibilityConverter x:Key="NegateVisibility">
 				<common:VisibilityConverter.VisibleValue>
@@ -26,7 +26,7 @@
 		</ResourceDictionary>
 	</UserControl.Resources>
 	<Grid>
-		<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Visibility="{Binding Loading, Converter={StaticResource booleanToVisibility}}">
+		<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Visibility="{Binding Loading, Converter={StaticResource BooleanToVisibility}}">
 			<TextBlock>Opening repository</TextBlock>
 			<ProgressBar IsIndeterminate="True" />
 		</StackPanel>
@@ -46,17 +46,20 @@
 					  Visibility="{Binding Loading, Converter={StaticResource NegateVisibility}, FallbackValue=False}">
 				<ListView.View>
 					<GridView>
-						<GridViewColumn Header="SHA">
+						<GridViewColumn Header="Graph">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
-									<TextBlock Text="{Binding Hash}" />
+									<local:GraphNode GraphEntry="{Binding GraphEntry}" MarkerSize="16" />
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>
 						<GridViewColumn Header="Message">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
-									<TextBlock Text="{Binding Message}" />
+									<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+										<local:RevisionLabelView />
+										<TextBlock Text="{Binding Message}" VerticalAlignment="Center" />
+									</StackPanel>
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>
@@ -64,6 +67,13 @@
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
 									<TextBlock Text="{Binding Author}" />
+								</DataTemplate>
+							</GridViewColumn.CellTemplate>
+						</GridViewColumn>
+						<GridViewColumn Header="SHA">
+							<GridViewColumn.CellTemplate>
+								<DataTemplate>
+									<TextBlock Text="{Binding Hash}" />
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>
@@ -75,4 +85,10 @@
 		</Grid>
 	</Grid>
 </UserControl>
+
+
+
+
+
+
 

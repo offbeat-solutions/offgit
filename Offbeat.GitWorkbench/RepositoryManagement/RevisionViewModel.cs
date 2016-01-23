@@ -41,6 +41,10 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			}
 		}
 
+		public IList<string> Labels { get; set; }
+		public ObjectId RevisionId { get; set; }
+		public GraphEntry GraphEntry { get; set; }
+
 		private Task PopulateChangesAsync() {
 			IsLoading = true;
 

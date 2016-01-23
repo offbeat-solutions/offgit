@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Gemini.Framework;
 using LibGit2Sharp;
 
@@ -116,16 +118,28 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 		private Task<List<ICommitLogEntryViewModel>> LoadCommitsAsync()
 		{
-			return Task.Run(() => {
-				return Repository.Commits.Select(c => new RevisionViewModel(Repository) {
-					Message = c.MessageShort,
-					Author = $"{c.Author.Name} <{c.Author.Email}>",
-					Hash = c.Sha,
-					Created = c.Author.When,
-				})
-				.Cast<ICommitLogEntryViewModel>()
-				.ToList();
-			});
+			return Task.Run(() => GetCommits().ToList());
+		}
+
+		private IEnumerable<ICommitLogEntryViewModel> GetCommits() {
+			var branchHeads = Repository.Branches.ToLookup(b => b.Tip.Id, b => b.Name);
+			var tags = Repository.Tags.ToLookup(b => b.Target.Id, b => b.Name);
+
+			GraphEntry previous = null;
+			foreach (var commit in Repository.Commits) {
+				var current = new RevisionViewModel(Repository) {
+					RevisionId = commit.Id,
+					Message = commit.MessageShort,
+					Author = $"{commit.Author.Name} <{commit.Author.Email}>",
+					Hash = commit.Sha,
+					Created = commit.Author.When,
+					Labels = branchHeads[commit.Id].Concat(tags[commit.Id]).ToList(),
+					GraphEntry = GraphEntry.FromCommit(previous, commit)
+				};
+				yield return current;
+
+				previous = current.GraphEntry;
+			}
 		}
 
 		private Task<Repository> OpenRepositoryAsync()
@@ -142,5 +156,6 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 		private Repository Repository { get; set; }
 		public Guid RepositoryId { get; set; }
+
 	}
 }

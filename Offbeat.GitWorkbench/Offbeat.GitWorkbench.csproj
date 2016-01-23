@@ -138,9 +138,14 @@
     <Compile Include="RepositoryManagement\GitRepositoryView.xaml.cs">
       <DependentUpon>GitRepositoryView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="RepositoryManagement\GraphEntry.cs" />
+    <Compile Include="RepositoryManagement\GraphNode.cs" />
     <Compile Include="RepositoryManagement\ICommitLogEntryViewModel.cs" />
     <Compile Include="RepositoryManagement\OpenRepositoryCommandDefinition.cs" />
     <Compile Include="RepositoryManagement\OpenRepositoryCommandHandler.cs" />
+    <Compile Include="RepositoryManagement\RevisionLabelView.xaml.cs">
+      <DependentUpon>RevisionLabelView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="RepositoryManagement\RevisionView.xaml.cs">
       <DependentUpon>RevisionView.xaml</DependentUpon>
     </Compile>
@@ -185,6 +190,10 @@
   </ItemGroup>
   <ItemGroup>
     <Page Include="RepositoryManagement\GitRepositoryView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RepositoryManagement\RevisionLabelView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
