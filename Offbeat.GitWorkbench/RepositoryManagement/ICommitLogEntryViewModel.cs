@@ -7,6 +7,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 		IReadOnlyList<FileStatusViewModel> Changes { get; }
 
 		bool IsLoading { get; }
+
 		GraphEntry GraphEntry { get; }
 	}
 }

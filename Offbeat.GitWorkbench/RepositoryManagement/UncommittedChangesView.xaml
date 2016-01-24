@@ -7,20 +7,25 @@
              xmlns:cal="http://www.caliburnproject.org"
              mc:Ignorable="d" 
 			 MinHeight="300"
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="300" d:DesignWidth="600">
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition />
 			<RowDefinition Height="Auto" />
 			<RowDefinition />
 		</Grid.RowDefinitions>
-		<Grid Grid.Row="0">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+		<Grid Grid.Row="0" Grid.Column="0">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto" />
 				<RowDefinition Height="*" />
 			</Grid.RowDefinitions>
 			<TextBlock Grid.Row="0">Staged changes</TextBlock>
-			<ListView Grid.Row="1" ItemsSource="{Binding Index}">
+			<ListView Grid.Row="1" ItemsSource="{Binding Index}" SelectedItem="{Binding SelectedStagedChange}" SelectionMode="Single">
 				<ListView.View>
 					<GridView>
 						<GridViewColumn>
@@ -54,15 +59,15 @@
 			</ListView>
 		</Grid>
 
-		<GridSplitter Grid.Row="1" ShowsPreview="True" Height="5" HorizontalAlignment="Stretch" />
+		<GridSplitter Grid.Row="1" Grid.Column="0" ShowsPreview="True" Height="5" HorizontalAlignment="Stretch" />
 
-		<Grid Grid.Row="2">
+		<Grid Grid.Row="2" Grid.Column="0">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto" />
 				<RowDefinition Height="*" />
 			</Grid.RowDefinitions>
 			<TextBlock Grid.Row="0">Unstaged changes</TextBlock>
-			<ListView Grid.Row="1" ItemsSource="{Binding Changes}">
+			<ListView Grid.Row="1" ItemsSource="{Binding Changes}" SelectedItem="{Binding SelectedUnstagedChange}" SelectionMode="Single">
 				<ListView.View>
 					<GridView>
 						<GridViewColumn>
@@ -94,22 +99,12 @@
 					</GridView>
 				</ListView.View>
 			</ListView>
-
 		</Grid>
+
+		<GridSplitter Grid.Row="0" Grid.Column="1" Grid.RowSpan="3" ShowsPreview="True" Width="5" VerticalAlignment="Stretch" HorizontalAlignment="Center"></GridSplitter>
+
+		<ContentControl Grid.Row="0" Grid.Column="2" Grid.RowSpan="3" cal:View.Model="{Binding SelectedChange}" />
 	</Grid>
 </UserControl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
+ 

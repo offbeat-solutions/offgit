@@ -70,6 +70,7 @@
       <HintPath>..\packages\Ookii.Dialogs.1.0\lib\net35\Ookii.Dialogs.Wpf.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="PresentationUI, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Data" />
@@ -133,6 +134,9 @@
     </Compile>
     <Compile Include="Common\DictionaryConverter.cs" />
     <Compile Include="RepositoryBookmark.cs" />
+    <Compile Include="RepositoryManagement\DiffView.xaml.cs">
+      <DependentUpon>DiffView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="RepositoryManagement\FileStatusViewModel.cs" />
     <Compile Include="RepositoryManagement\GitRepositoryViewModel.cs" />
     <Compile Include="RepositoryManagement\GitRepositoryView.xaml.cs">
@@ -154,6 +158,10 @@
       <DependentUpon>UncommittedChangesView.xaml</DependentUpon>
     </Compile>
     <Compile Include="RepositoryManagement\UncommittedChangesViewModel.cs" />
+    <Compile Include="RepositoryManagement\WorkingCopyDiffView.xaml.cs">
+      <DependentUpon>WorkingCopyDiffView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="RepositoryManagement\WorkingCopyDiffViewModel.cs" />
     <Compile Include="StateManager.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -189,6 +197,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="RepositoryManagement\DiffView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="RepositoryManagement\GitRepositoryView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -202,6 +214,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="RepositoryManagement\UncommittedChangesView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RepositoryManagement\WorkingCopyDiffView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
