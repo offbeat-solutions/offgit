@@ -5,12 +5,31 @@ using LibGit2Sharp;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement {
 	public class GraphEntry {
+		public bool IsFirst { get; set; }
 		public List<GraphLine> Lines { get; set; } = new List<GraphLine>();
 		public Color RevisionColor { get; set; }
 		public int RevisionIndex { get; set; }
 		public ObjectId RevisionId { get; set; }
-		public static GraphEntry FromCommit(GraphEntry previous, Commit commit) {
 
+		public static GraphEntry FromWorkingDirectory(RepositoryStatus repositoryStatus, Commit tip) {
+			return new GraphEntry {
+				IsFirst = true,
+				RevisionIndex = 0,
+				RevisionColor = WorkingCopyColor,
+				Lines = {
+					new GraphLine() {
+						ParentId = tip.Id,
+						Color = GetBranchColor(0),
+						BranchIndex = 0,
+						StartsFromThisRevision = true,
+						StartIndex = 0,
+						EndIndex = 0
+					}
+				}
+			};
+		}
+
+		public static GraphEntry FromCommit(GraphEntry previous, Commit commit) {
 			if (previous == null) {
 				return CreateFirstEntry(commit);
 			}
@@ -56,6 +75,22 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 					});
 				}
 			}
+
+			if (!commitIndexSet) {
+				var newTipIndex = entry.Lines.Count(l => !l.EndsInThisRevision);
+
+				entry.RevisionIndex = newTipIndex;
+				entry.RevisionColor = GetBranchColor(newTipIndex);
+
+				entry.Lines.Add(new GraphLine() {
+					BranchIndex = newTipIndex,
+					StartIndex = newTipIndex,
+					EndIndex = newTipIndex,
+					StartsFromThisRevision = true,
+					Color = entry.RevisionColor,
+					ParentId = commit.Parents.FirstOrDefault()?.Id
+				});
+			}
 		}
 
 		private static List<GraphLine> GetLinesToContinue(GraphEntry previous) {
@@ -68,6 +103,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 		private static GraphEntry CreateFirstEntry(Commit commit) {
 			var entry = new GraphEntry {
+				IsFirst = true,
 				RevisionId = commit.Id,
 				RevisionIndex = 0,
 				RevisionColor = GetBranchColor(0),
@@ -128,6 +164,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			Colors.Aquamarine,
 			Colors.BlueViolet
 		};
+
+		private static Color WorkingCopyColor => Colors.Gray;
 	}
 
 	public class GraphLine {

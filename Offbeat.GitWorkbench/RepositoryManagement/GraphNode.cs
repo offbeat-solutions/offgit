@@ -69,7 +69,16 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			var commitMarkerPen = new Pen(new SolidColorBrush(Colors.Black), 1);
 
-			drawingContext.DrawEllipse(GetBrush(GraphEntry.RevisionColor), commitMarkerPen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius, RevisionRadius);
+			var revisionBrush = GetBrush(GraphEntry.RevisionColor);
+
+			if (GraphEntry.IsFirst) {
+				drawingContext.DrawEllipse(revisionBrush, commitMarkerPen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius + 2, RevisionRadius + 2);
+
+				var whitePen = GetLinePen(Colors.White);
+				drawingContext.DrawEllipse(whitePen.Brush, whitePen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius / 2, RevisionRadius / 2);
+			} else {
+				drawingContext.DrawEllipse(revisionBrush, commitMarkerPen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius, RevisionRadius);
+			}
 		}
 
 		private static readonly Dictionary<Color, Pen> PensByColor = new Dictionary<Color, Pen>();

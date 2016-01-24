@@ -23,7 +23,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 				NotifyOfPropertyChange();
 			}
 		}
-
+		
 		protected override async void OnViewLoaded(object view) {
 			await RefreshStatusAsync();
 		}
@@ -31,6 +31,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 		public IReadOnlyList<FileStatusViewModel> Changes { get; private set; }
 
 		public IReadOnlyList<FileStatusViewModel> Index { get; private set; }
+		public GraphEntry GraphEntry { get; set; }
 
 		public async void Stage(FileStatusViewModel change) {
 			repository.Stage(change.Path);

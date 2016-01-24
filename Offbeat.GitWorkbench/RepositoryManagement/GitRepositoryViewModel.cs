@@ -58,11 +58,6 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			if (Repository != null) {
 				var revisions = await LoadCommitsAsync();
 
-				var uncommitted = await LoadWorkingDirectoryChangesAsync();
-				if (uncommitted != null) {
-					revisions.Insert(0, uncommitted);
-				}
-
 				Commits = new ObservableCollection<ICommitLogEntryViewModel>(revisions);
 
 				Loading = false;
@@ -71,20 +66,20 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			isInitialized = true;
 		}
 
-		private Task<ICommitLogEntryViewModel> LoadWorkingDirectoryChangesAsync() {
-			return Task.Run(() => {
-				var repositoryStatus =
-					Repository.RetrieveStatus(new StatusOptions() {
-						Show = StatusShowOption.IndexAndWorkDir,
-						DetectRenamesInIndex = true,
-						DetectRenamesInWorkDir = true
-					});
-				if (!repositoryStatus.IsDirty) {
-					return (ICommitLogEntryViewModel)null;
-				}
+		private ICommitLogEntryViewModel LoadWorkingDirectoryChanges() {
+			var repositoryStatus =
+				Repository.RetrieveStatus(new StatusOptions() {
+					Show = StatusShowOption.IndexAndWorkDir,
+					DetectRenamesInIndex = true,
+					DetectRenamesInWorkDir = true
+				});
+			if (!repositoryStatus.IsDirty) {
+				return null;
+			}
 
-				return new UncommittedChangesViewModel(Repository);
-			});
+			return new UncommittedChangesViewModel(Repository) {
+				GraphEntry = GraphEntry.FromWorkingDirectory(repositoryStatus, Repository.Head.Tip)
+			};
 		}
 
 		public ICommitLogEntryViewModel SelectedRevision {
@@ -122,11 +117,19 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		}
 
 		private IEnumerable<ICommitLogEntryViewModel> GetCommits() {
+
+			var uncommitted = LoadWorkingDirectoryChanges();
+			if (uncommitted != null) {
+				yield return uncommitted;
+			}
+
 			var branchHeads = Repository.Branches.ToLookup(b => b.Tip.Id, b => b.Name);
 			var tags = Repository.Tags.ToLookup(b => b.Target.Id, b => b.Name);
 
-			GraphEntry previous = null;
-			foreach (var commit in Repository.Commits) {
+			GraphEntry previous = uncommitted?.GraphEntry;
+			var commitLog = Repository.Commits.QueryBy(new CommitFilter() { Since = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")) });
+
+			foreach (var commit in commitLog) {
 				var current = new RevisionViewModel(Repository) {
 					RevisionId = commit.Id,
 					Message = commit.MessageShort,
