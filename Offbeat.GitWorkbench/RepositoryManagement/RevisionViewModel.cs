@@ -49,7 +49,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			IsLoading = true;
 
 			return Task.Run(() => {
-				var commit = repository.Commits.Single(c => c.Sha == Hash);
+				var commit = repository.Lookup<Commit>(Hash);
 
 				IEnumerable<FileStatusViewModel> unsorted;
 				if (commit.Parents.Any()) {

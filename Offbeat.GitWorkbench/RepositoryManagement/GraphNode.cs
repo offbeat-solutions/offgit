@@ -71,7 +71,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			var revisionBrush = GetBrush(GraphEntry.RevisionColor);
 
-			if (GraphEntry.IsFirst) {
+			if (GraphEntry.IsCurrent) {
 				drawingContext.DrawEllipse(revisionBrush, commitMarkerPen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius + 2, RevisionRadius + 2);
 
 				var whitePen = GetLinePen(Colors.White);

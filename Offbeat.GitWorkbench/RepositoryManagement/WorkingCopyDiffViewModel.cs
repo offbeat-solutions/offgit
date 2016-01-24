@@ -79,7 +79,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 		private string GetNewContent() {
 			try {
 				return File.ReadAllText(System.IO.Path.Combine(Repository.Info.WorkingDirectory, Path));
-			} catch (FileNotFoundException) {
+			} catch (IOException) {
 				return "";
 			}
 		}

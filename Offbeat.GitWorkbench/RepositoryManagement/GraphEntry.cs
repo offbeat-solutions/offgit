@@ -5,7 +5,7 @@ using LibGit2Sharp;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement {
 	public class GraphEntry {
-		public bool IsFirst { get; set; }
+		public bool IsCurrent { get; set; }
 		public List<GraphLine> Lines { get; set; } = new List<GraphLine>();
 		public Color RevisionColor { get; set; }
 		public int RevisionIndex { get; set; }
@@ -13,7 +13,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 		public static GraphEntry FromWorkingDirectory(RepositoryStatus repositoryStatus, Commit tip) {
 			return new GraphEntry {
-				IsFirst = true,
+				IsCurrent = true,
 				RevisionIndex = 0,
 				RevisionColor = WorkingCopyColor,
 				Lines = {
@@ -29,16 +29,19 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			};
 		}
 
-		public static GraphEntry FromCommit(GraphEntry previous, Commit commit) {
+		public static GraphEntry FromCommit(GraphEntry previous, Commit commit, ObjectId currentTip) {
 			if (previous == null) {
-				return CreateFirstEntry(commit);
+				return CreateFirstEntry(commit, currentTip);
 			}
 
-			return CreateEntryFromCommit(previous, commit);
+			return CreateEntryFromCommit(previous, commit, currentTip);
 		}
 
-		private static GraphEntry CreateEntryFromCommit(GraphEntry previous, Commit commit) {
-			var entry = new GraphEntry() {RevisionId = commit.Id};
+		private static GraphEntry CreateEntryFromCommit(GraphEntry previous, Commit commit, ObjectId currentTip) {
+			var entry = new GraphEntry() {
+				RevisionId = commit.Id,
+				IsCurrent = commit.Id == currentTip
+			};
 
 			ContinuePreviousLines(previous, commit, entry);
 			AddNewBranches(commit, entry);
@@ -101,9 +104,9 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 				.ToList();
 		}
 
-		private static GraphEntry CreateFirstEntry(Commit commit) {
+		private static GraphEntry CreateFirstEntry(Commit commit, ObjectId currentTip) {
 			var entry = new GraphEntry {
-				IsFirst = true,
+				IsCurrent = commit.Id == currentTip,
 				RevisionId = commit.Id,
 				RevisionIndex = 0,
 				RevisionColor = GetBranchColor(0),

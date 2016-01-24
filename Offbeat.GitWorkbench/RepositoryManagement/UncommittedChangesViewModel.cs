@@ -14,6 +14,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 		public UncommittedChangesViewModel(Repository repository) {
 			this.repository = repository;
+
+			ParentCommitId = repository.Head.Tip.Id;
 		}
 
 		public string Message => "Uncommitted changes";
@@ -23,6 +25,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 		public IReadOnlyList<FileStatusViewModel> Index { get; private set; }
 
 		public GraphEntry GraphEntry { get; set; }
+
+		public ObjectId ParentCommitId { get; set; }
 
 		public bool IsLoading {
 			get { return isLoading; }

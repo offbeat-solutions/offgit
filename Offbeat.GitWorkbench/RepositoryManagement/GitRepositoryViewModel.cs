@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -23,8 +24,6 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			this.Path = path;
 
 			DisplayName = repositoryName;
-
-			Loading = true;
 		}
 
 		public bool Loading
@@ -49,13 +48,20 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		}
 
 		private bool isInitialized;
+		private FileSystemWatcher watcher;
+		private ICommitLogEntryViewModel uncommitted;
+
 		private async Task EnsureInitialized() {
 			if (isInitialized) {
 				return;
 			}
 
+			Loading = true;
+
 			Repository = await OpenRepositoryAsync();
 			if (Repository != null) {
+				StartWatcher();
+
 				var revisions = await LoadCommitsAsync();
 
 				Commits = new ObservableCollection<ICommitLogEntryViewModel>(revisions);
@@ -66,6 +72,105 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			isInitialized = true;
 		}
 
+		private void StartWatcher() {
+			watcher = new FileSystemWatcher(Path) {
+				IncludeSubdirectories = true
+			};
+			watcher.Changed += RepositoryDirectoryChanged;
+			watcher.Created += RepositoryDirectoryChanged;
+			watcher.Deleted += RepositoryDirectoryChanged;
+			watcher.Renamed += RepositoryDirectoryChanged;
+			watcher.EnableRaisingEvents = true;
+		}
+
+		private void StopWatcher() {
+			if (watcher == null) {
+				return;
+			}
+
+			watcher.EnableRaisingEvents = false;
+			watcher.Changed -= RepositoryDirectoryChanged;
+			watcher.Created -= RepositoryDirectoryChanged;
+			watcher.Deleted -= RepositoryDirectoryChanged;
+			watcher.Renamed -= RepositoryDirectoryChanged;
+		}
+
+		private void SuspendWatcher() {
+			watcher.EnableRaisingEvents = false;
+		}
+
+		private void ResumeWatcher() {
+			watcher.EnableRaisingEvents = true;
+		}
+
+		public override void TryClose(bool? dialogResult = null) {
+			base.TryClose(dialogResult);
+
+			if (dialogResult == true) {
+				StopWatcher();
+			}
+		}
+
+		private DateTime? previousChangeNotification;
+		private TimeSpan changeThreshold = TimeSpan.FromMilliseconds(300);
+		private async void RepositoryDirectoryChanged(object sender, FileSystemEventArgs fileSystemEventArgs) {
+			var time = DateTime.UtcNow;
+			var notification = previousChangeNotification;
+
+			previousChangeNotification = time;
+			if (time - notification < changeThreshold) {
+				return;
+			}
+
+			try {
+				SuspendWatcher();
+
+				await RefreshRepositoryStatus();
+			} finally {
+				ResumeWatcher();
+			}
+		}
+
+		private async Task RefreshRepositoryStatus() {
+
+			var previousTipId = Commits.OfType<RevisionViewModel>().FirstOrDefault()?.RevisionId;
+			var newTipId = Repository.Head.Tip.Id;
+
+			if (previousTipId != newTipId) {
+				var revisions = await LoadCommitsAsync();
+				Commits = new ObservableCollection<ICommitLogEntryViewModel>(revisions);
+				return;
+			}
+
+			var firstRevision = Commits.FirstOrDefault() as UncommittedChangesViewModel;
+
+			var newWorkingDirectoryState = LoadWorkingDirectoryChanges();
+			if (newWorkingDirectoryState == null && firstRevision == null) {
+				return;
+			}
+
+			var newCommitList = new ObservableCollection<ICommitLogEntryViewModel>();
+
+			if (newWorkingDirectoryState != null) {
+				newCommitList.Add(newWorkingDirectoryState);
+			}
+
+			var firstCommit = Commits.FirstOrDefault();
+			if (firstCommit != null) {
+				firstCommit.GraphEntry.IsCurrent = newWorkingDirectoryState == null;
+			}
+
+			foreach (var commit in commits.OfType<RevisionViewModel>()) {
+				newCommitList.Add(commit);
+			}
+
+			if (SelectedRevision is UncommittedChangesViewModel) {
+				SelectedRevision = newWorkingDirectoryState;
+			}
+
+			Commits = newCommitList;
+		}
+
 		private ICommitLogEntryViewModel LoadWorkingDirectoryChanges() {
 			var repositoryStatus =
 				Repository.RetrieveStatus(new StatusOptions() {
@@ -73,7 +178,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 					DetectRenamesInIndex = true,
 					DetectRenamesInWorkDir = true
 				});
-			if (!repositoryStatus.IsDirty) {
+			if (!repositoryStatus.IsDirty || !repositoryStatus.Any()) {
 				return null;
 			}
 
@@ -118,9 +223,14 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 		private IEnumerable<ICommitLogEntryViewModel> GetCommits() {
 
-			var uncommitted = LoadWorkingDirectoryChanges();
+			uncommitted = LoadWorkingDirectoryChanges();
 			if (uncommitted != null) {
 				yield return uncommitted;
+			}
+
+			ObjectId currentTip = null;
+			if (uncommitted == null) {
+				currentTip = Repository.Head.Tip.Id;
 			}
 
 			var branchHeads = Repository.Branches.ToLookup(b => b.Tip.Id, b => b.Name);
@@ -137,7 +247,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 					Hash = commit.Sha,
 					Created = commit.Author.When,
 					Labels = branchHeads[commit.Id].Concat(tags[commit.Id]).ToList(),
-					GraphEntry = GraphEntry.FromCommit(previous, commit)
+					GraphEntry = GraphEntry.FromCommit(previous, commit, currentTip)
 				};
 				yield return current;
 
