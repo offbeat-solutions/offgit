@@ -23,6 +23,7 @@
 				</common:VisibilityConverter.HiddenValue>
 			</common:VisibilityConverter>
 
+			<CollectionViewSource x:Key="VisibleRevisions" Source="{Binding Commits}"></CollectionViewSource>
 		</ResourceDictionary>
 	</UserControl.Resources>
 	<Grid>
@@ -39,7 +40,8 @@
 			</Grid.RowDefinitions>
 
 			<ListView Grid.Row="0" 
-					  ItemsSource="{Binding Commits}" 
+					  x:Name="RevisionList"
+					  ItemsSource="{Binding Source={StaticResource VisibleRevisions}}" 
 					  SelectedItem="{Binding SelectedRevision}"
 					  Visibility="{Binding Loading, Converter={StaticResource NegateVisibility}, FallbackValue=False}">
 				<ListView.View>

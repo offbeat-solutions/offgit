@@ -9,5 +9,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 		bool IsLoading { get; }
 
 		GraphEntry GraphEntry { get; }
+
+		bool HasContent { get; }
 	}
 }

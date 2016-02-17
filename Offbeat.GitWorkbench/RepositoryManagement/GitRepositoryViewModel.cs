@@ -4,8 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Windows.Media;
+using Caliburn.Micro;
 using Gemini.Framework;
 using LibGit2Sharp;
 
@@ -15,9 +14,9 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 	{
 		public string Path { get; }
 		private bool loading;
-		private ObservableCollection<ICommitLogEntryViewModel> commits;
 		private ICommitLogEntryViewModel selectedRevision;
 		private double? detailsViewHeight;
+		private IRepositoryView view;
 
 		public GitRepositoryViewModel(string path, string repositoryName)
 		{
@@ -40,16 +39,27 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			}
 		}
 
+		protected override void OnViewAttached(object view, object context) {
+			base.OnViewAttached(view, context);
+
+			this.view = view as IRepositoryView;
+		}
+
 		protected override async void OnActivate()
 		{
 			base.OnActivate();
 
 			await EnsureInitialized();
+
+			if (Repository != null) {
+				StartWatcher();
+			}
 		}
 
 		private bool isInitialized;
 		private FileSystemWatcher watcher;
-		private ICommitLogEntryViewModel uncommitted;
+		private UncommittedChangesViewModel uncommitted;
+		private RevisionViewModel baseRevision;
 
 		private async Task EnsureInitialized() {
 			if (isInitialized) {
@@ -60,11 +70,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			Repository = await OpenRepositoryAsync();
 			if (Repository != null) {
-				StartWatcher();
-
-				var revisions = await LoadCommitsAsync();
-
-				Commits = new ObservableCollection<ICommitLogEntryViewModel>(revisions);
+				await LoadCommitsAsync();
 
 				Loading = false;
 			}
@@ -76,6 +82,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			watcher = new FileSystemWatcher(Path) {
 				IncludeSubdirectories = true
 			};
+
 			watcher.Changed += RepositoryDirectoryChanged;
 			watcher.Created += RepositoryDirectoryChanged;
 			watcher.Deleted += RepositoryDirectoryChanged;
@@ -93,6 +100,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			watcher.Created -= RepositoryDirectoryChanged;
 			watcher.Deleted -= RepositoryDirectoryChanged;
 			watcher.Renamed -= RepositoryDirectoryChanged;
+			watcher.Dispose();
 		}
 
 		private void SuspendWatcher() {
@@ -113,6 +121,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 		private DateTime? previousChangeNotification;
 		private TimeSpan changeThreshold = TimeSpan.FromMilliseconds(300);
+
 		private async void RepositoryDirectoryChanged(object sender, FileSystemEventArgs fileSystemEventArgs) {
 			var time = DateTime.UtcNow;
 			var notification = previousChangeNotification;
@@ -122,69 +131,22 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 				return;
 			}
 
-			try {
-				SuspendWatcher();
-
-				await RefreshRepositoryStatus();
-			} finally {
-				ResumeWatcher();
-			}
+			await RefreshRepositoryStatus();
 		}
 
 		private async Task RefreshRepositoryStatus() {
-
-			var previousTipId = Commits.OfType<RevisionViewModel>().FirstOrDefault()?.RevisionId;
-			var newTipId = Repository.Head.Tip.Id;
-
-			if (previousTipId != newTipId) {
-				var revisions = await LoadCommitsAsync();
-				Commits = new ObservableCollection<ICommitLogEntryViewModel>(revisions);
+			if (uncommitted.ParentCommitId != Repository.Head.Tip.Id) {
+				await LoadCommitsAsync();
 				return;
 			}
 
-			var firstRevision = Commits.FirstOrDefault() as UncommittedChangesViewModel;
-
-			var newWorkingDirectoryState = LoadWorkingDirectoryChanges();
-			if (newWorkingDirectoryState == null && firstRevision == null) {
-				return;
+			await uncommitted.LoadWorkingDirectoryStatusAsync();
+			if (baseRevision != null) {
+				baseRevision.GraphEntry.IsCurrent = !uncommitted.HasContent;
+				baseRevision.GraphEntry.IsFirst = !uncommitted.HasContent;
 			}
 
-			var newCommitList = new ObservableCollection<ICommitLogEntryViewModel>();
-
-			if (newWorkingDirectoryState != null) {
-				newCommitList.Add(newWorkingDirectoryState);
-			}
-
-			var firstCommit = Commits.FirstOrDefault();
-			if (firstCommit != null) {
-				firstCommit.GraphEntry.IsCurrent = newWorkingDirectoryState == null;
-			}
-
-			foreach (var commit in commits.OfType<RevisionViewModel>()) {
-				newCommitList.Add(commit);
-			}
-
-			if (SelectedRevision is UncommittedChangesViewModel) {
-				SelectedRevision = newWorkingDirectoryState;
-			}
-
-			Commits = newCommitList;
-		}
-
-		private ICommitLogEntryViewModel LoadWorkingDirectoryChanges() {
-			var repositoryStatus =
-				Repository.RetrieveStatus(new StatusOptions() {
-					Show = StatusShowOption.IndexAndWorkDir,
-					DetectRenamesInIndex = true,
-					DetectRenamesInWorkDir = true
-				});
-			if (!repositoryStatus.IsDirty || !repositoryStatus.Any()) {
-				return null;
-			}
-
-			return new UncommittedChangesViewModel(Repository) {
-				GraphEntry = GraphEntry.FromWorkingDirectory(repositoryStatus, Repository.Head.Tip)
-			};
+			view?.Refresh();
 		}
 
 		public ICommitLogEntryViewModel SelectedRevision {
@@ -205,38 +167,27 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			}
 		}
 
-		public ObservableCollection<ICommitLogEntryViewModel> Commits
+		public BindableCollection<ICommitLogEntryViewModel> Commits { get; set; } = new BindableCollection<ICommitLogEntryViewModel>();
+
+		private async Task LoadCommitsAsync()
 		{
-			get { return commits; }
-			set
-			{
-				if (Equals(value, commits)) return;
-				commits = value;
-				NotifyOfPropertyChange();
-			}
+			uncommitted = new UncommittedChangesViewModel(Repository) {
+				GraphEntry = GraphEntry.FromWorkingDirectory(Repository.Head.Tip)
+			};
+			await uncommitted.LoadWorkingDirectoryStatusAsync();
+
+			var allRevisions = new ObservableCollection<ICommitLogEntryViewModel>(await Task.Run(() => GetCommits(uncommitted)));
+			allRevisions.Insert(0, uncommitted);
+
+			Commits.Clear();
+			Commits.AddRange(allRevisions);
 		}
 
-		private Task<List<ICommitLogEntryViewModel>> LoadCommitsAsync()
-		{
-			return Task.Run(() => GetCommits().ToList());
-		}
-
-		private IEnumerable<ICommitLogEntryViewModel> GetCommits() {
-
-			uncommitted = LoadWorkingDirectoryChanges();
-			if (uncommitted != null) {
-				yield return uncommitted;
-			}
-
-			ObjectId currentTip = null;
-			if (uncommitted == null) {
-				currentTip = Repository.Head.Tip.Id;
-			}
-
+		private IEnumerable<ICommitLogEntryViewModel> GetCommits(UncommittedChangesViewModel workingDirectory) {
 			var branchHeads = Repository.Branches.ToLookup(b => b.Tip.Id, b => b.Name);
 			var tags = Repository.Tags.ToLookup(b => b.Target.Id, b => b.Name);
 
-			GraphEntry previous = uncommitted?.GraphEntry;
+			GraphEntry previous = workingDirectory.GraphEntry;
 			var commitLog = Repository.Commits.QueryBy(new CommitFilter() { Since = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")) });
 
 			foreach (var commit in commitLog) {
@@ -247,8 +198,15 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 					Hash = commit.Sha,
 					Created = commit.Author.When,
 					Labels = branchHeads[commit.Id].Concat(tags[commit.Id]).ToList(),
-					GraphEntry = GraphEntry.FromCommit(previous, commit, currentTip)
+					GraphEntry = GraphEntry.FromCommit(previous, commit)
 				};
+
+				if (current.RevisionId == workingDirectory.ParentCommitId) {
+					baseRevision = current;
+					baseRevision.GraphEntry.IsCurrent = !workingDirectory.HasContent;
+					baseRevision.GraphEntry.IsFirst = !workingDirectory.HasContent;
+				}
+
 				yield return current;
 
 				previous = current.GraphEntry;

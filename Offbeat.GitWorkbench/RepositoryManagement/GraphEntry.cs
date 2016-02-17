@@ -6,14 +6,16 @@ using LibGit2Sharp;
 namespace Offbeat.GitWorkbench.RepositoryManagement {
 	public class GraphEntry {
 		public bool IsCurrent { get; set; }
+		public bool IsFirst { get; set; }
 		public List<GraphLine> Lines { get; set; } = new List<GraphLine>();
 		public Color RevisionColor { get; set; }
 		public int RevisionIndex { get; set; }
 		public ObjectId RevisionId { get; set; }
 
-		public static GraphEntry FromWorkingDirectory(RepositoryStatus repositoryStatus, Commit tip) {
+		public static GraphEntry FromWorkingDirectory(Commit tip) {
 			return new GraphEntry {
 				IsCurrent = true,
+				IsFirst = true,
 				RevisionIndex = 0,
 				RevisionColor = WorkingCopyColor,
 				Lines = {
@@ -29,18 +31,17 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			};
 		}
 
-		public static GraphEntry FromCommit(GraphEntry previous, Commit commit, ObjectId currentTip) {
+		public static GraphEntry FromCommit(GraphEntry previous, Commit commit) {
 			if (previous == null) {
-				return CreateFirstEntry(commit, currentTip);
+				return CreateFirstEntry(commit);
 			}
 
-			return CreateEntryFromCommit(previous, commit, currentTip);
+			return CreateEntryFromCommit(previous, commit);
 		}
 
-		private static GraphEntry CreateEntryFromCommit(GraphEntry previous, Commit commit, ObjectId currentTip) {
+		private static GraphEntry CreateEntryFromCommit(GraphEntry previous, Commit commit) {
 			var entry = new GraphEntry() {
-				RevisionId = commit.Id,
-				IsCurrent = commit.Id == currentTip
+				RevisionId = commit.Id
 			};
 
 			ContinuePreviousLines(previous, commit, entry);
@@ -50,8 +51,9 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 		private static void ContinuePreviousLines(GraphEntry previous, Commit commit, GraphEntry entry) {
 			bool commitIndexSet = false;
-			for (int index = 0; index < GetLinesToContinue(previous).Count; index++) {
-				var line = GetLinesToContinue(previous)[index];
+			var linesToContinue = GetLinesToContinue(previous);
+			for (int index = 0; index < linesToContinue.Count; index++) {
+				var line = linesToContinue[index];
 
 				if (line.ParentId == entry.RevisionId) {
 					if (!commitIndexSet) {
@@ -104,9 +106,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 				.ToList();
 		}
 
-		private static GraphEntry CreateFirstEntry(Commit commit, ObjectId currentTip) {
+		private static GraphEntry CreateFirstEntry(Commit commit) {
 			var entry = new GraphEntry {
-				IsCurrent = commit.Id == currentTip,
 				RevisionId = commit.Id,
 				RevisionIndex = 0,
 				RevisionColor = GetBranchColor(0),
@@ -174,7 +175,9 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 	public class GraphLine {
 		public int StartIndex { get; set; }
 		public int EndIndex { get; set; }
+
 		public bool StartsFromThisRevision { get; set; }
+
 		public bool EndsInThisRevision { get; set; }
 		public int BranchIndex { get; set; }
 

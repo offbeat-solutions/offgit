@@ -1,28 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement
 {
 	/// <summary>
 	/// Interaction logic for GitRepositoryView.xaml
 	/// </summary>
-	public partial class GitRepositoryView : UserControl
+	public partial class GitRepositoryView : IRepositoryView
 	{
 		public GitRepositoryView()
 		{
 			InitializeComponent();
+
+			var view = (CollectionViewSource) Resources["VisibleRevisions"];
+			view.Filter += (sender, args) => {
+				args.Accepted = ((ICommitLogEntryViewModel) args.Item).HasContent;
+			};
 		}
+
+		public void Refresh() {
+			var collectionView = RevisionList.Items.SourceCollection as CollectionView;
+
+			collectionView?.Dispatcher.Invoke(() => collectionView.Refresh());
+		}
+	}
+
+	public interface IRepositoryView {
+		void Refresh();
 	}
 }

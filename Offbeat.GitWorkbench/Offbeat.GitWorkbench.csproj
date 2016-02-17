@@ -70,6 +70,7 @@
       <HintPath>..\packages\Ookii.Dialogs.1.0\lib\net35\Ookii.Dialogs.Wpf.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="PresentationFramework.Aero2" />
     <Reference Include="PresentationUI, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
@@ -133,6 +134,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Common\DictionaryConverter.cs" />
+    <Compile Include="Properties\Annotations.cs" />
     <Compile Include="RepositoryBookmark.cs" />
     <Compile Include="RepositoryManagement\DiffView.xaml.cs">
       <DependentUpon>DiffView.xaml</DependentUpon>

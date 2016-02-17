@@ -56,7 +56,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 				double endX = line.EndIndex*MarkerSize + columnMidpoint;
 				double endY = line.EndsInThisRevision ? columnMidpoint : MarkerSize - LineJoinOffset;
 
-				if (!line.StartsFromThisRevision) {
+				if (!line.StartsFromThisRevision && !GraphEntry.IsFirst) {
 					drawingContext.DrawLine(linePen, new Point(startX, 0), new Point(startX, LineJoinOffset));
 				} 
 

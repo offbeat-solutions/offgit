@@ -11,18 +11,34 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 		private FileStatusViewModel selectedStagedChange;
 		private FileStatusViewModel selectedUnstagedChange;
 		private WorkingCopyDiffViewModel selectedChange;
+		private IReadOnlyList<FileStatusViewModel> changes = new FileStatusViewModel[0];
+		private IReadOnlyList<FileStatusViewModel> index = new FileStatusViewModel[0];
 
 		public UncommittedChangesViewModel(Repository repository) {
 			this.repository = repository;
-
-			ParentCommitId = repository.Head.Tip.Id;
 		}
 
 		public string Message => "Uncommitted changes";
 
-		public IReadOnlyList<FileStatusViewModel> Changes { get; private set; }
+		public IReadOnlyList<FileStatusViewModel> Changes {
+			get { return changes; }
+			private set {
+				if (Equals(value, changes)) return;
+				changes = value;
+				NotifyOfPropertyChange();
+				NotifyOfPropertyChange(nameof(HasContent));
+			}
+		}
 
-		public IReadOnlyList<FileStatusViewModel> Index { get; private set; }
+		public IReadOnlyList<FileStatusViewModel> Index {
+			get { return index; }
+			private set {
+				if (Equals(value, index)) return;
+				index = value;
+				NotifyOfPropertyChange();
+				NotifyOfPropertyChange(nameof(HasContent));
+			}
+		}
 
 		public GraphEntry GraphEntry { get; set; }
 
@@ -35,10 +51,6 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 				isLoading = value;
 				NotifyOfPropertyChange();
 			}
-		}
-
-		protected override async void OnViewLoaded(object view) {
-			await RefreshStatusAsync();
 		}
 
 		public FileStatusViewModel SelectedStagedChange {
@@ -84,10 +96,12 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			}
 		}
 
+		public bool HasContent => Changes.Any() || Index.Any();
+
 		public async void Stage(FileStatusViewModel change) {
 			repository.Stage(change.Path);
 
-			await RefreshStatusAsync();
+			await LoadWorkingDirectoryStatusAsync();
 		}
 
 		public async void StageAll() {
@@ -95,13 +109,13 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 				repository.Stage(change.Path);
 			}
 
-			await RefreshStatusAsync();
+			await LoadWorkingDirectoryStatusAsync();
 		}
 
 		public async void Unstage(FileStatusViewModel change) {
 			repository.Unstage(change.Path);
 
-			await RefreshStatusAsync();
+			await LoadWorkingDirectoryStatusAsync();
 		}
 
 		public async void UnstageAll() {
@@ -109,11 +123,14 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 				repository.Unstage(change.Path);
 			}
 
-			await RefreshStatusAsync();
+			await LoadWorkingDirectoryStatusAsync();
 		}
 
-		private async Task RefreshStatusAsync() {
+		public async Task LoadWorkingDirectoryStatusAsync() {
 			IsLoading = true;
+
+			Changes = new FileStatusViewModel[0];
+			Index = new FileStatusViewModel[0];
 
 			await Task.Run(() => {
 				var repositoryStatus = repository.RetrieveStatus();
@@ -133,6 +150,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 					.OrderBy(ch => (int) ch.State)
 					.ThenBy(ch => ch.Path)
 					.ToList();
+
+				ParentCommitId = repository.Head.Tip.Id;
 
 				NotifyOfPropertyChange(() => Changes);
 				NotifyOfPropertyChange(() => Index);
