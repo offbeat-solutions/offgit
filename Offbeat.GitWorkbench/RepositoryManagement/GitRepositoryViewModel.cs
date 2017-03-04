@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Caliburn.Micro;
 using Gemini.Framework;
@@ -81,15 +82,25 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			isInitialized = true;
 		}
 
+		private TimeSpan changeThreshold = TimeSpan.FromMilliseconds(300);
+		private IDisposable changeSubscription;
 		private void StartWatcher() {
 			watcher = new FileSystemWatcher(Path) {
 				IncludeSubdirectories = true
 			};
 
-			watcher.Changed += RepositoryDirectoryChanged;
-			watcher.Created += RepositoryDirectoryChanged;
-			watcher.Deleted += RepositoryDirectoryChanged;
-			watcher.Renamed += RepositoryDirectoryChanged;
+			var changedObservable = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(h => watcher.Changed += h, h => watcher.Changed -= h);
+			var createdObservable = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(h => watcher.Created += h, h => watcher.Created -= h);
+			var deletedObservable = Observable.FromEventPattern<FileSystemEventHandler, FileSystemEventArgs>(h => watcher.Deleted += h, h => watcher.Deleted -= h);
+			var renamedObservable = Observable.FromEventPattern<RenamedEventHandler, FileSystemEventArgs>(h => watcher.Renamed += h, h => watcher.Renamed -= h);
+
+			changeSubscription = changedObservable
+				.Concat(createdObservable)
+				.Concat(deletedObservable)
+				.Concat(renamedObservable)
+				.Throttle(changeThreshold)
+				.Subscribe(_ => RefreshRepositoryStatus());
+
 			watcher.EnableRaisingEvents = true;
 		}
 
@@ -98,11 +109,9 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 				return;
 			}
 
+			changeSubscription?.Dispose();
+
 			watcher.EnableRaisingEvents = false;
-			watcher.Changed -= RepositoryDirectoryChanged;
-			watcher.Created -= RepositoryDirectoryChanged;
-			watcher.Deleted -= RepositoryDirectoryChanged;
-			watcher.Renamed -= RepositoryDirectoryChanged;
 			watcher.Dispose();
 		}
 
@@ -122,25 +131,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			}
 		}
 
-		private DateTime? previousChangeNotification;
-		private TimeSpan changeThreshold = TimeSpan.FromMilliseconds(300);
-
-		private async void RepositoryDirectoryChanged(object sender, FileSystemEventArgs fileSystemEventArgs) {
-			logger.Trace($"Detected change to repository at [{Path}]");
-			var time = DateTime.UtcNow;
-			var notification = previousChangeNotification;
-
-			previousChangeNotification = time;
-			var timeSinceLastChange = time - notification;
-			if (timeSinceLastChange < changeThreshold) {
-				logger.Trace($"Previous change was {timeSinceLastChange} ago, skipping refresh.");
-				return;
-			}
-
-			await RefreshRepositoryStatus();
-		}
-
-		private async Task RefreshRepositoryStatus() {
+		private async void RefreshRepositoryStatus() {
 			logger.Trace($"Working directory was based on {uncommitted.ParentCommitId}. Current head is {Repository.Head.Tip.Id} ({Repository.Head.FriendlyName}).");
 			if (uncommitted.ParentCommitId != Repository.Head.Tip.Id) {
 				logger.Debug($"Refreshing entire commit tree");
