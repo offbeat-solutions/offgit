@@ -49,7 +49,7 @@
 						<GridViewColumn Header="Graph">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
-									<local:GraphNode GraphEntry="{Binding GraphEntry}" MarkerSize="16" />
+									<local:GraphNode GraphEntry="{Binding GraphEntry}" MarkerHeight="22" MarkerWidth="16" />
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>

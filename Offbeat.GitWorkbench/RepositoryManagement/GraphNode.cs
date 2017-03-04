@@ -17,18 +17,26 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			set { SetValue(GraphEntryProperty, value); }
 		}
 
-		public static readonly DependencyProperty MarkerSizeProperty = DependencyProperty.Register(
-			"MarkerSize", typeof (double), typeof (GraphNode), new PropertyMetadata(default(double)));
+		public static readonly DependencyProperty MarkerHeightProperty = DependencyProperty.Register(
+			"MarkerHeight", typeof (double), typeof (GraphNode), new PropertyMetadata(default(double)));
 
-		public double MarkerSize {
-			get { return (double) GetValue(MarkerSizeProperty); }
-			set { SetValue(MarkerSizeProperty, value); }
+		public double MarkerHeight {
+			get { return (double) GetValue(MarkerHeightProperty); }
+			set { SetValue(MarkerHeightProperty, value); }
+		}
+
+		public static readonly DependencyProperty MarkerWidthProperty = DependencyProperty.Register(
+			"MarkerWidth", typeof (double), typeof (GraphNode), new PropertyMetadata(default(double)));
+
+		public double MarkerWidth {
+			get { return (double) GetValue(MarkerWidthProperty); }
+			set { SetValue(MarkerWidthProperty, value); }
 		}
 
 		protected override Size MeasureOverride(Size constraint) {
 			var markerCount = GraphEntry?.Lines.Max(l => Math.Max(l.StartIndex, l.EndIndex) + 1) ?? 0;
 
-			return new Size(MarkerSize * markerCount, MarkerSize);
+			return new Size(MarkerWidth * markerCount, MarkerHeight - LineStartOffset*2);
 		}
 
 		protected override Size ArrangeOverride(Size arrangeBounds)
@@ -44,26 +52,28 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 				return;
 			}
 
-			double columnMidpoint = MarkerSize/2;
-			double commitMarkerCenter = GraphEntry.RevisionIndex*MarkerSize + columnMidpoint;
+			double columnMidpointX = MarkerWidth/2;
+			double columnMidpointY = MarkerHeight/2 - LineStartOffset;
+
+			double commitMarkerCenterX = GraphEntry.RevisionIndex*MarkerWidth + columnMidpointX;
 
 			foreach (var line in GraphEntry.Lines) {
 				var linePen = GetLinePen(line.Color);
 
-				double startX = line.StartIndex*MarkerSize + columnMidpoint;
-				double startY = line.StartsFromThisRevision ? columnMidpoint : LineJoinOffset;
+				double startX = line.StartIndex*MarkerWidth + columnMidpointX;
+				double startY = line.StartsFromThisRevision ? columnMidpointY : LineJoinOffset;
 
-				double endX = line.EndIndex*MarkerSize + columnMidpoint;
-				double endY = line.EndsInThisRevision ? columnMidpoint : MarkerSize - LineJoinOffset;
+				double endX = line.EndIndex*MarkerWidth + columnMidpointX;
+				double endY = line.EndsInThisRevision ? columnMidpointY : MarkerHeight - LineJoinOffset;
 
 				if (!line.StartsFromThisRevision && !GraphEntry.IsFirst) {
-					drawingContext.DrawLine(linePen, new Point(startX, 0), new Point(startX, LineJoinOffset));
+					drawingContext.DrawLine(linePen, new Point(startX, -LineStartOffset), new Point(startX, LineJoinOffset));
 				} 
 
 				drawingContext.DrawLine(linePen, new Point(startX, startY), new Point(endX, endY));
 
 				if (!line.EndsInThisRevision) {
-					drawingContext.DrawLine(linePen, new Point(endX, endY), new Point(endX, MarkerSize));
+					drawingContext.DrawLine(linePen, new Point(endX, endY), new Point(endX, MarkerHeight));
 				}
 			}
 
@@ -72,12 +82,12 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			var revisionBrush = GetBrush(GraphEntry.RevisionColor);
 
 			if (GraphEntry.IsCurrent) {
-				drawingContext.DrawEllipse(revisionBrush, commitMarkerPen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius + 2, RevisionRadius + 2);
+				drawingContext.DrawEllipse(revisionBrush, commitMarkerPen, new Point(commitMarkerCenterX, columnMidpointY), RevisionRadius + 2, RevisionRadius + 2);
 
 				var whitePen = GetLinePen(Colors.White);
-				drawingContext.DrawEllipse(whitePen.Brush, whitePen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius / 2, RevisionRadius / 2);
+				drawingContext.DrawEllipse(whitePen.Brush, whitePen, new Point(commitMarkerCenterX, columnMidpointY), RevisionRadius / 2, RevisionRadius / 2);
 			} else {
-				drawingContext.DrawEllipse(revisionBrush, commitMarkerPen, new Point(commitMarkerCenter, columnMidpoint), RevisionRadius, RevisionRadius);
+				drawingContext.DrawEllipse(revisionBrush, commitMarkerPen, new Point(commitMarkerCenterX, columnMidpointY), RevisionRadius, RevisionRadius);
 			}
 		}
 
@@ -100,6 +110,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			return BrushesByColor[color];
 		}
 
+		private const double LineStartOffset = 2;
 		private const double LineJoinOffset = 4;
 		private const double RevisionRadius = 4;
 	}
