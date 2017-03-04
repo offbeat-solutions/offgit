@@ -184,11 +184,14 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		}
 
 		private IEnumerable<ICommitLogEntryViewModel> GetCommits(UncommittedChangesViewModel workingDirectory) {
-			var branchHeads = Repository.Branches.ToLookup(b => b.Tip.Id, b => b.Name);
-			var tags = Repository.Tags.ToLookup(b => b.Target.Id, b => b.Name);
+			var branchHeads = Repository.Branches.ToLookup(b => b.Tip.Id, b => b.FriendlyName);
+			var tags = Repository.Tags.ToLookup(b => b.Target.Id, b => b.FriendlyName);
 
 			GraphEntry previous = workingDirectory.GraphEntry;
-			var commitLog = Repository.Commits.QueryBy(new CommitFilter() { Since = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")) });
+			var commitLog = Repository.Commits.QueryBy(new CommitFilter()
+			{
+				IncludeReachableFrom = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")).ToList()
+			});
 
 			foreach (var commit in commitLog) {
 				var current = new RevisionViewModel(Repository) {
