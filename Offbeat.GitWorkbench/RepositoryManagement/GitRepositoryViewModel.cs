@@ -7,11 +7,14 @@ using System.Threading.Tasks;
 using Caliburn.Micro;
 using Gemini.Framework;
 using LibGit2Sharp;
+using NLog;
+using LogManager = NLog.LogManager;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement
 {
 	public class GitRepositoryViewModel : Document
 	{
+		private static ILogger logger = LogManager.GetCurrentClassLogger();
 		public string Path { get; }
 		private bool loading;
 		private ICommitLogEntryViewModel selectedRevision;
@@ -123,11 +126,14 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		private TimeSpan changeThreshold = TimeSpan.FromMilliseconds(300);
 
 		private async void RepositoryDirectoryChanged(object sender, FileSystemEventArgs fileSystemEventArgs) {
+			logger.Trace($"Detected change to repository at [{Path}]");
 			var time = DateTime.UtcNow;
 			var notification = previousChangeNotification;
 
 			previousChangeNotification = time;
-			if (time - notification < changeThreshold) {
+			var timeSinceLastChange = time - notification;
+			if (timeSinceLastChange < changeThreshold) {
+				logger.Trace($"Previous change was {timeSinceLastChange} ago, skipping refresh.");
 				return;
 			}
 
@@ -135,11 +141,14 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		}
 
 		private async Task RefreshRepositoryStatus() {
+			logger.Trace($"Working directory was based on {uncommitted.ParentCommitId}. Current head is {Repository.Head.Tip.Id} ({Repository.Head.FriendlyName}).");
 			if (uncommitted.ParentCommitId != Repository.Head.Tip.Id) {
+				logger.Debug($"Refreshing entire commit tree");
 				await LoadCommitsAsync();
 				return;
 			}
 
+			logger.Debug($"Refreshing working directory status");
 			await uncommitted.LoadWorkingDirectoryStatusAsync();
 			if (baseRevision != null) {
 				baseRevision.GraphEntry.IsCurrent = !uncommitted.HasContent;
