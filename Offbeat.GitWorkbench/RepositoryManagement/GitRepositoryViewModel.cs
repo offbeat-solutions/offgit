@@ -57,12 +57,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		{
 			var rev = (RevisionViewModel) SelectedRevision;
 
-			await RunBlockingAsync($"Checking out {rev.FriendlyName}", async () =>
-			{
-				await Task.Run(() => CheckoutRevision(rev));
-
-				await LoadCommitsAsync();
-			});
+			await CheckoutRevisionAsync(rev);
 		}
 
 		void ICommandHandler<CheckoutRevisionCommandDefinition>.Update(Command command)
@@ -273,11 +268,28 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			}
 		}
 
-		private void CheckoutRevision(RevisionViewModel rev)
+		private async Task CheckoutRevisionAsync(RevisionViewModel rev)
 		{
-			var commit = Repository.Lookup<Commit>(rev.FriendlyName);
+			
+			await RunBlockingAsync($"Checking out {rev.FriendlyName}", async () =>
+			{
+				await Task.Run(() => {
+					var commit = Repository.Lookup<Commit>(rev.FriendlyName);
 
-			Commands.Checkout(Repository, commit, new CheckoutOptions() {});
+					Commands.Checkout(Repository, commit, new CheckoutOptions() {});
+				});
+
+				await LoadCommitsAsync();
+			});
+		}
+
+		public async void CheckoutRevision(object rev)
+		{
+			var revision = SelectedRevision as RevisionViewModel;
+			if (revision != null)
+			{
+				await CheckoutRevisionAsync(revision);
+			}
 		}
 
 		private Task<Repository> OpenRepositoryAsync()
