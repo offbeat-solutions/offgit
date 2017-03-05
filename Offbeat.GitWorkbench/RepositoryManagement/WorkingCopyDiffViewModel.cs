@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Caliburn.Micro;
@@ -9,6 +10,7 @@ using Xceed.Wpf.DataGrid.FilterCriteria;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement {
 	public class WorkingCopyDiffViewModel : Screen {
+		private readonly bool staged;
 		private bool isLoading;
 		private DiffPaneModel newText;
 		private DiffPaneModel oldText;
@@ -42,7 +44,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			}
 		}
 
-		public WorkingCopyDiffViewModel(Repository repository, string path) {
+		public WorkingCopyDiffViewModel(Repository repository, string path, bool staged) {
+			this.staged = staged;
 			Repository = repository;
 			Path = path;
 		}
@@ -64,16 +67,41 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			return Task.Run(() => GenerateDiff());
 		}
 
-		private SideBySideDiffModel GenerateDiff() {
-			var patch = Repository.Diff.Compare<Patch>(Repository.Head.Tip.Tree, DiffTargets.Index | DiffTargets.WorkingDirectory, new []{Path});
-			var fileChanges = patch[Path];
-
-			string oldContent = GetOldContent(fileChanges);
-			string newContent = GetNewContent();
-				
+		private SideBySideDiffModel GenerateDiff()
+		{
+			var patch = GetPatch();
 
 			return new SideBySideDiffBuilder(new Differ())
-				.BuildDiffModel(oldContent, newContent);
+				.BuildDiffModel(patch.OldContent, patch.NewContent);
+		}
+
+		private (string OldContent, string NewContent) GetPatch()
+		{
+
+			if (staged)
+			{
+				var headObjectId = Repository.Head.Tip.Tree[Path].Target.Id;
+				var indexObjectId = Repository.Index[Path].Id;
+
+				string headContent = GetFileContent(headObjectId);
+				string indexContent = GetFileContent(indexObjectId);
+
+				return (headContent ?? "", indexContent ?? "");
+			}
+			else
+			{
+				var headObjectId = Repository.Head.Tip.Tree[Path].Target.Id;
+				var indexObjectId = Repository.Index[Path]?.Id;
+
+				string originalContent = GetFileContent(indexObjectId ?? headObjectId);
+
+				return (originalContent, GetNewContent());
+			}
+		}
+
+		private string GetFileContent(ObjectId objectId)
+		{
+			return Repository.Lookup<Blob>(objectId)?.GetContentText();
 		}
 
 		private string GetNewContent() {
@@ -82,10 +110,6 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			} catch (IOException) {
 				return "";
 			}
-		}
-
-		private string GetOldContent(PatchEntryChanges fileChanges) {
-			return Repository.Lookup<Blob>(fileChanges.OldOid)?.GetContentText() ?? "";
 		}
 	}
 }

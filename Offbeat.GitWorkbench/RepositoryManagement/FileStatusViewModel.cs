@@ -35,6 +35,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			[FileStatus.RenamedInWorkdir] = RepositoryFileStatus.Renamed,
 			[FileStatus.NewInWorkdir] = RepositoryFileStatus.Untracked,
 			[FileStatus.ModifiedInWorkdir] = RepositoryFileStatus.Modified,
+			[FileStatus.ModifiedInWorkdir | FileStatus.ModifiedInIndex] = RepositoryFileStatus.Modified,
 		};
 
 		private static Dictionary<FileStatus, RepositoryFileStatus> stagedStatuses = new Dictionary<FileStatus, RepositoryFileStatus>
@@ -43,6 +44,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			[FileStatus.DeletedFromIndex] = RepositoryFileStatus.Removed,
 			[FileStatus.ModifiedInIndex] = RepositoryFileStatus.Modified,
 			[FileStatus.RenamedInIndex] = RepositoryFileStatus.Renamed,
+			[FileStatus.ModifiedInIndex | FileStatus.ModifiedInWorkdir] = RepositoryFileStatus.Modified,
 		};
 
 		private static Dictionary<ChangeKind, RepositoryFileStatus> statusesByChangeKind = new Dictionary<ChangeKind, RepositoryFileStatus>
