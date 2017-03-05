@@ -44,6 +44,10 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			await EnsureInitialized();
 
+			if (Repository.Info.CurrentOperation != CurrentOperation.None) {
+				BusyIndicatorText = $"Waiting for external Git operation to complete ({Repository.Info.CurrentOperation}).";
+			}
+
 			if (Repository != null) {
 				StartWatcher();
 			}
@@ -111,7 +115,8 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			await RunBlockingAsync("Opening repository", async () => {
 				Repository = await OpenRepositoryAsync();
-				if (Repository != null)
+
+				if (Repository != null && Repository.Info.CurrentOperation == CurrentOperation.None)
 				{
 					await LoadCommitsAsync();
 				}
@@ -172,6 +177,14 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		}
 
 		private async void RefreshRepositoryStatus() {
+			if (Repository.Info.CurrentOperation != CurrentOperation.None)
+			{
+				BusyIndicatorText = $"Waiting for external Git operation to complete ({Repository.Info.CurrentOperation}).";
+				return;
+			}
+
+			BusyIndicatorText = null;
+
 			logger.Trace($"Working directory was based on {uncommitted.ParentCommitId}. Current head is {Repository.Head.Tip.Id} ({Repository.Head.FriendlyName}).");
 			if (uncommitted.ParentCommitId != Repository.Head.Tip.Id) {
 				logger.Debug($"Refreshing entire commit tree");
