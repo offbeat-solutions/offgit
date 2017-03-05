@@ -46,14 +46,14 @@
 					  Visibility="{Binding Loading, Converter={StaticResource NegateVisibility}, FallbackValue=False}">
 				<ListView.View>
 					<GridView>
-						<GridViewColumn Header="Graph">
+						<GridViewColumn Header="Graph" Width="60">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
 									<local:GraphNode GraphEntry="{Binding GraphEntry}" MarkerHeight="22" MarkerWidth="16" />
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>
-						<GridViewColumn Header="Message">
+						<GridViewColumn Header="Message" Width="400">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
 									<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -63,14 +63,14 @@
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>
-						<GridViewColumn Header="Author">
+						<GridViewColumn Header="Author" Width="150">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
 									<TextBlock Text="{Binding Author}" />
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>
-						<GridViewColumn Header="SHA">
+						<GridViewColumn Header="SHA" Width="80">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
 									<TextBlock Text="{Binding Hash}" />
