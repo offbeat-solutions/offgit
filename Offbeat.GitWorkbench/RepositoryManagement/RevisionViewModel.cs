@@ -47,6 +47,9 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 		public bool HasContent => true;
 
+		public string FriendlyName => Labels.FirstOrDefault() ?? ShortId;
+		public string ShortId => repository.ObjectDatabase.ShortenObjectId(repository.Lookup<Commit>(Hash));
+
 		private Task PopulateChangesAsync() {
 			IsLoading = true;
 

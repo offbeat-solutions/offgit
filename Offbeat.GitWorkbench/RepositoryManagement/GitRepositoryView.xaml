@@ -13,6 +13,7 @@
 	<UserControl.Resources>
 		<ResourceDictionary>
 			<BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+			<common:EmptyStringToHiddenVisibilityConverter x:Key="HideIfEmpty" />
 
 			<common:VisibilityConverter x:Key="NegateVisibility">
 				<common:VisibilityConverter.VisibleValue>
@@ -27,11 +28,6 @@
 		</ResourceDictionary>
 	</UserControl.Resources>
 	<Grid>
-		<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Visibility="{Binding Loading, Converter={StaticResource BooleanToVisibility}}">
-			<TextBlock>Opening repository</TextBlock>
-			<ProgressBar IsIndeterminate="True" />
-		</StackPanel>
-
 		<Grid>
 			<Grid.RowDefinitions>
 				<RowDefinition Height="*" />
@@ -42,8 +38,7 @@
 			<ListView Grid.Row="0" 
 					  x:Name="RevisionList"
 					  ItemsSource="{Binding Source={StaticResource VisibleRevisions}}" 
-					  SelectedItem="{Binding SelectedRevision}"
-					  Visibility="{Binding Loading, Converter={StaticResource NegateVisibility}, FallbackValue=False}">
+					  SelectedItem="{Binding SelectedRevision}">
 				<ListView.View>
 					<GridView>
 						<GridViewColumn Header="Graph">
@@ -83,6 +78,15 @@
 			<GridSplitter Grid.Row="1" ShowsPreview="True"  Height="5" HorizontalAlignment="Stretch"></GridSplitter>
 			<ContentControl Grid.Row="2" cal:View.Model="{Binding SelectedRevision}" Height="{Binding DetailsViewHeight, Mode=TwoWay}" />
 		</Grid>
+
+		<Border Background="#50FFFFFF" Visibility="{Binding BusyIndicatorText, Converter={StaticResource HideIfEmpty}}">
+			<Border Style="{DynamicResource RepositoryOperationIndicatorBackground}">
+				<StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+					<TextBlock Text="{Binding BusyIndicatorText}"></TextBlock>
+					<ProgressBar IsIndeterminate="True" />
+				</StackPanel>
+			</Border>
+		</Border>
 	</Grid>
 </UserControl>
 
