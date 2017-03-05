@@ -39,11 +39,17 @@
 				<RowDefinition Height="*"></RowDefinition>
 			</Grid.RowDefinitions>
 
+			<StackPanel Grid.Row="0" Orientation="Vertical" 
+					HorizontalAlignment="Center" 
+					VerticalAlignment="Center"
+					Visibility="{Binding NotRepository, Converter={StaticResource BooleanToVisibility}}">
+				<TextBlock FontSize="20">The folder does not contain a valid Git repository</TextBlock>
+			</StackPanel>
 			<ListView Grid.Row="0" 
 					  x:Name="RevisionList"
 					  ItemsSource="{Binding Source={StaticResource VisibleRevisions}}" 
 					  SelectedItem="{Binding SelectedRevision}"
-					  Visibility="{Binding Loading, Converter={StaticResource NegateVisibility}, FallbackValue=False}">
+					  Visibility="{Binding LoadedValidRepository, Converter={StaticResource BooleanToVisibility}}">
 				<ListView.View>
 					<GridView>
 						<GridViewColumn Header="Graph">

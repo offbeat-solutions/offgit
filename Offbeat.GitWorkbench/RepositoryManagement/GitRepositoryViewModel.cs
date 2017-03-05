@@ -18,6 +18,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		private static ILogger logger = LogManager.GetCurrentClassLogger();
 		public string Path { get; }
 		private bool loading;
+		private bool notRepository;
 		private ICommitLogEntryViewModel selectedRevision;
 		private double? detailsViewHeight;
 		private IRepositoryView view;
@@ -40,8 +41,26 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 				}
 				loading = value;
 				NotifyOfPropertyChange();
+				NotifyOfPropertyChange(nameof(LoadedValidRepository));
 			}
 		}
+
+		public bool NotRepository {
+			get {
+				return notRepository;
+			}
+			set {
+				if (value == notRepository)
+				{
+					return;
+				}
+				notRepository = value;
+				NotifyOfPropertyChange();
+				NotifyOfPropertyChange(nameof(LoadedValidRepository));
+			}
+		}
+
+		public bool LoadedValidRepository => !NotRepository && !Loading;
 
 		protected override void OnViewAttached(object view, object context) {
 			base.OnViewAttached(view, context);
@@ -76,6 +95,11 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			if (Repository != null) {
 				await LoadCommitsAsync();
 
+				Loading = false;
+			}
+			else
+			{
+				NotRepository = true;
 				Loading = false;
 			}
 
