@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Gemini.Framework;
@@ -65,7 +66,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 				if (value != null) {
 					SelectedUnstagedChange = null;
-					SelectedChange = new WorkingCopyDiffViewModel(repository, value.Path);
+					SelectedChange = new WorkingCopyDiffViewModel(repository, value.Path, staged: true);
 				}
 			}
 		}
@@ -82,7 +83,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 
 				if (value != null) {
 					SelectedStagedChange = null;
-					SelectedChange = new WorkingCopyDiffViewModel(repository, value.Path);
+					SelectedChange = new WorkingCopyDiffViewModel(repository, value.Path, staged: false);
 				}
 			}
 		}
@@ -124,6 +125,30 @@ namespace Offbeat.GitWorkbench.RepositoryManagement {
 			}
 
 			await LoadWorkingDirectoryStatusAsync();
+		}
+
+		public async void Discard() {
+			ObjectId id = repository.Index[SelectedUnstagedChange.Path]?.Id;
+
+			if (id == null) {
+				repository.CheckoutPaths(ParentCommitId.Sha, new[] {SelectedUnstagedChange.Path}, new CheckoutOptions() {CheckoutModifiers = CheckoutModifiers.Force});
+			} else {
+				await RevertToVersion(id);
+			}
+
+			await LoadWorkingDirectoryStatusAsync();
+		}
+
+		private async Task RevertToVersion(ObjectId id)
+		{
+			using (var contentStream = repository.Lookup<Blob>(id).GetContentStream(new FilteringOptions(SelectedUnstagedChange.Path)))
+			using (var fileStream = File.Open(
+				Path.Combine(repository.Info.WorkingDirectory, SelectedUnstagedChange.Path),
+				FileMode.Create,
+				FileAccess.Write))
+			{
+				await contentStream.CopyToAsync(fileStream);
+			}
 		}
 
 		public async Task LoadWorkingDirectoryStatusAsync() {

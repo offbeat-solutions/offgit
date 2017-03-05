@@ -7,18 +7,21 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Caliburn.Micro;
 using Gemini.Framework;
+using Gemini.Framework.Commands;
+using Gemini.Framework.Threading;
 using LibGit2Sharp;
 using NLog;
+using Offbeat.GitWorkbench.Common;
+using Action = System.Action;
 using LogManager = NLog.LogManager;
 using System.Windows;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement
 {
-	public class GitRepositoryViewModel : Document
+	public class GitRepositoryViewModel : Document, ICommandHandler<CheckoutRevisionCommandDefinition>
 	{
 		private static ILogger logger = LogManager.GetCurrentClassLogger();
 		public string Path { get; }
-		private bool loading;
 		private ICommitLogEntryViewModel selectedRevision;
 		private double? detailsViewHeight;
 		private IRepositoryView view;
@@ -44,20 +47,6 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 		public RelayCommand CopyHash { get; }
 
-		public bool Loading
-		{
-			get { return loading; }
-			set
-			{
-				if (value == loading)
-				{
-					return;
-				}
-				loading = value;
-				NotifyOfPropertyChange();
-			}
-		}
-
 		protected override void OnViewAttached(object view, object context) {
 			base.OnViewAttached(view, context);
 
@@ -70,8 +59,56 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			await EnsureInitialized();
 
+			if (Repository.Info.CurrentOperation != CurrentOperation.None) {
+				BusyIndicatorText = $"Waiting for external Git operation to complete ({Repository.Info.CurrentOperation}).";
+			}
+
 			if (Repository != null) {
 				StartWatcher();
+			}
+		}
+
+		async Task ICommandHandler<CheckoutRevisionCommandDefinition>.Run(Command command)
+		{
+			var rev = (RevisionViewModel) SelectedRevision;
+
+			await CheckoutRevisionAsync(rev);
+		}
+
+		void ICommandHandler<CheckoutRevisionCommandDefinition>.Update(Command command)
+		{
+			command.Enabled = SelectedRevision is RevisionViewModel;
+		}
+
+		private Task RunBlockingAsync(string busyIndicatorText, Action action)
+		{
+			return RunBlockingAsync(busyIndicatorText, () => Task.Run(action));
+		}
+
+		private async Task RunBlockingAsync(string busyIndicatorText, Func<Task> action)
+		{
+			BusyIndicatorText = busyIndicatorText;
+			try
+			{
+				await action();
+			}
+			finally
+			{
+				BusyIndicatorText = null;
+			}
+		}
+
+		public string BusyIndicatorText
+		{
+			get => _busyIndicatorText;
+			set
+			{
+				if (value == _busyIndicatorText)
+				{
+					return;
+				}
+				_busyIndicatorText = value;
+				NotifyOfPropertyChange();
 			}
 		}
 
@@ -85,20 +122,23 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 				return;
 			}
 
-			Loading = true;
 
-			Repository = await OpenRepositoryAsync();
-			if (Repository != null) {
-				await LoadCommitsAsync();
+			await RunBlockingAsync("Opening repository", async () => {
+				Repository = await OpenRepositoryAsync();
 
-				Loading = false;
-			}
+				if (Repository != null && Repository.Info.CurrentOperation == CurrentOperation.None)
+				{
+					await LoadCommitsAsync();
+				}
+			});
 
 			isInitialized = true;
 		}
 
 		private TimeSpan changeThreshold = TimeSpan.FromMilliseconds(300);
 		private IDisposable changeSubscription;
+		private string _busyIndicatorText;
+
 		private void StartWatcher() {
 			watcher = new FileSystemWatcher(Path) {
 				IncludeSubdirectories = true
@@ -147,6 +187,14 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 		}
 
 		private async void RefreshRepositoryStatus() {
+			if (Repository.Info.CurrentOperation != CurrentOperation.None)
+			{
+				BusyIndicatorText = $"Waiting for external Git operation to complete ({Repository.Info.CurrentOperation}).";
+				return;
+			}
+
+			BusyIndicatorText = null;
+
 			logger.Trace($"Working directory was based on {uncommitted.ParentCommitId}. Current head is {Repository.Head.Tip.Id} ({Repository.Head.FriendlyName}).");
 			if (uncommitted.ParentCommitId != Repository.Head.Tip.Id) {
 				logger.Debug($"Refreshing entire commit tree");
@@ -191,8 +239,16 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			};
 			await uncommitted.LoadWorkingDirectoryStatusAsync();
 
-			var allRevisions = new ObservableCollection<ICommitLogEntryViewModel>(await Task.Run(() => GetCommits(uncommitted)));
-			allRevisions.Insert(0, uncommitted);
+			var commitLogEntryViewModels = (await Task.Run(() => GetCommits(uncommitted))).ToList();
+			commitLogEntryViewModels.Insert(0, uncommitted);
+
+			var allRevisions = new ObservableCollection<ICommitLogEntryViewModel>(commitLogEntryViewModels);
+
+			baseRevision = commitLogEntryViewModels.OfType<RevisionViewModel>()
+				.First(c => c.RevisionId == uncommitted.ParentCommitId);
+
+			baseRevision.GraphEntry.IsCurrent = !uncommitted.HasContent;
+			baseRevision.GraphEntry.IsFirst = !uncommitted.HasContent;
 
 			Commits.Clear();
 			Commits.AddRange(allRevisions);
@@ -204,9 +260,11 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			GraphEntry previous = workingDirectory.GraphEntry;
 			var commitLog = Repository.Commits.QueryBy(new CommitFilter()
-			{
-				IncludeReachableFrom = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")).ToList()
-			});
+				{
+					IncludeReachableFrom = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")).ToList()
+				})
+				.OrderByDescending(c => c.Committer.When)
+				.ThenByDescending(c => c.Author.When);
 
 			foreach (var commit in commitLog) {
 				var current = new RevisionViewModel(Repository) {
@@ -219,15 +277,33 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 					GraphEntry = GraphEntry.FromCommit(previous, commit)
 				};
 
-				if (current.RevisionId == workingDirectory.ParentCommitId) {
-					baseRevision = current;
-					baseRevision.GraphEntry.IsCurrent = !workingDirectory.HasContent;
-					baseRevision.GraphEntry.IsFirst = !workingDirectory.HasContent;
-				}
-
 				yield return current;
 
 				previous = current.GraphEntry;
+			}
+		}
+
+		private async Task CheckoutRevisionAsync(RevisionViewModel rev)
+		{
+			
+			await RunBlockingAsync($"Checking out {rev.FriendlyName}", async () =>
+			{
+				await Task.Run(() => {
+					var commit = Repository.Lookup<Commit>(rev.FriendlyName);
+
+					Commands.Checkout(Repository, commit, new CheckoutOptions() {});
+				});
+
+				await LoadCommitsAsync();
+			});
+		}
+
+		public async void CheckoutRevision(object rev)
+		{
+			var revision = SelectedRevision as RevisionViewModel;
+			if (revision != null)
+			{
+				await CheckoutRevisionAsync(revision);
 			}
 		}
 

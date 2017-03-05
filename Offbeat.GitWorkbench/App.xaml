@@ -10,6 +10,8 @@
 				<ResourceDictionary>
 					<gemini:AppBootstrapper x:Key="bootstrapper" />
 				</ResourceDictionary>
+
+				<ResourceDictionary Source="Common/ThemeAwareResources.xaml"></ResourceDictionary>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Application.Resources>

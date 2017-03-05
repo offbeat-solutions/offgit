@@ -17,4 +17,17 @@ namespace Offbeat.GitWorkbench {
 		[Export]
 		public static MenuItemDefinition OpenRepositoryMenuItem = new CommandMenuItemDefinition<OpenRepositoryCommandDefinition>(MenuDefinitions.FileNewOpenMenuGroup, 0);
 	}
+
+	public static class RepositoryMenuDefinition
+	{
+
+		[Export]
+		public static MenuDefinition RepositoryMenu = new MenuDefinition(MenuDefinitions.MainMenuBar, 11, "Repository");
+
+		[Export]
+		public static MenuItemGroupDefinition RevisionActions = new MenuItemGroupDefinition(RepositoryMenu, 0);
+
+		[Export]
+		public static MenuItemDefinition MenuItem = new CommandMenuItemDefinition<CheckoutRevisionCommandDefinition>(RevisionActions, 0);
+	}
 }

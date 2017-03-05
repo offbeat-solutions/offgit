@@ -6,7 +6,8 @@
              xmlns:local="clr-namespace:Offbeat.GitWorkbench.RepositoryManagement"
              xmlns:cal="http://www.caliburnproject.org"
              mc:Ignorable="d" 
-			 MinHeight="300"
+             MinHeight="300"
+             x:Name="Root"
              d:DesignHeight="300" d:DesignWidth="600">
 	<Grid>
 		<Grid.RowDefinitions>
@@ -92,7 +93,14 @@
 						<GridViewColumn Header="Path">
 							<GridViewColumn.CellTemplate>
 								<DataTemplate>
-									<TextBlock Text="{Binding Path}" />
+									<TextBlock Text="{Binding Path}" Tag="{Binding DataContext, ElementName=Root}">
+										<TextBlock.ContextMenu>
+											<ContextMenu Name="cm" cal:Action.TargetWithoutContext="{Binding Path=PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+												<MenuItem Header="Discard" cal:Message.Attach="Discard()" />
+											</ContextMenu>
+										</TextBlock.ContextMenu>
+
+									</TextBlock>
 								</DataTemplate>
 							</GridViewColumn.CellTemplate>
 						</GridViewColumn>
