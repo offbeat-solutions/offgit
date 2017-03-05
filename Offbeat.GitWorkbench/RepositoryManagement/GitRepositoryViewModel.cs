@@ -10,6 +10,7 @@ using Gemini.Framework;
 using LibGit2Sharp;
 using NLog;
 using LogManager = NLog.LogManager;
+using System.Windows;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement
 {
@@ -27,7 +28,21 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			this.Path = path;
 
 			DisplayName = repositoryName;
+
+			CopyHash = new RelayCommand((item) => {
+				var rev = item as RevisionViewModel;
+				if (rev != null)
+				{
+					Clipboard.SetText(rev.Hash);
+				}
+			},
+			(item) =>
+			{
+				return item is RevisionViewModel;
+			});
 		}
+
+		public RelayCommand CopyHash { get; }
 
 		public bool Loading
 		{

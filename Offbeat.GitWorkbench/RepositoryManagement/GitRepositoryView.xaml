@@ -44,6 +44,13 @@
 					  ItemsSource="{Binding Source={StaticResource VisibleRevisions}}" 
 					  SelectedItem="{Binding SelectedRevision}"
 					  Visibility="{Binding Loading, Converter={StaticResource NegateVisibility}, FallbackValue=False}">
+				<ListView.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Copy SHA hash" 
+								  Command="{Binding CopyHash}" 
+								  CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+					</ContextMenu>
+				</ListView.ContextMenu>
 				<ListView.View>
 					<GridView>
 						<GridViewColumn Header="Graph">
