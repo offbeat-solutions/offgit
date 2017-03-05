@@ -14,6 +14,7 @@ using NLog;
 using Offbeat.GitWorkbench.Common;
 using Action = System.Action;
 using LogManager = NLog.LogManager;
+using System.Windows;
 
 namespace Offbeat.GitWorkbench.RepositoryManagement
 {
@@ -30,7 +31,21 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			this.Path = path;
 
 			DisplayName = repositoryName;
+
+			CopyHash = new RelayCommand((item) => {
+				var rev = item as RevisionViewModel;
+				if (rev != null)
+				{
+					Clipboard.SetText(rev.Hash);
+				}
+			},
+			(item) =>
+			{
+				return item is RevisionViewModel;
+			});
 		}
+
+		public RelayCommand CopyHash { get; }
 
 		protected override void OnViewAttached(object view, object context) {
 			base.OnViewAttached(view, context);

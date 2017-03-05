@@ -44,6 +44,13 @@
 						<Setter Property="cal:Message.Attach" Value="[Event MouseDoubleClick] = [Action CheckoutRevision($dataContext)]"></Setter>
 					</Style>
 				</ListView.ItemContainerStyle>
+				<ListView.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Copy SHA hash" 
+								  Command="{Binding CopyHash}" 
+								  CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}"/>
+					</ContextMenu>
+				</ListView.ContextMenu>
 				<ListView.View>
 					<GridView>
 						<GridViewColumn Header="Graph" Width="60">
