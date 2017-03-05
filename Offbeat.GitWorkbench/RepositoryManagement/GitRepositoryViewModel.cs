@@ -232,9 +232,11 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			GraphEntry previous = workingDirectory.GraphEntry;
 			var commitLog = Repository.Commits.QueryBy(new CommitFilter()
-			{
-				IncludeReachableFrom = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")).ToList()
-			});
+				{
+					IncludeReachableFrom = Repository.Refs.Where(r => !r.CanonicalName.StartsWith("refs/stash")).ToList()
+				})
+				.OrderByDescending(c => c.Committer.When)
+				.ThenByDescending(c => c.Author.When);
 
 			foreach (var commit in commitLog) {
 				var current = new RevisionViewModel(Repository) {
