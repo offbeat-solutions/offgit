@@ -55,7 +55,7 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 
 			await RunBlockingAsync($"Checking out {rev.FriendlyName}", async () =>
 			{
-				CheckoutRevision(rev);
+				await Task.Run(() => CheckoutRevision(rev));
 
 				await LoadCommitsAsync();
 			});
@@ -66,12 +66,17 @@ namespace Offbeat.GitWorkbench.RepositoryManagement
 			command.Enabled = SelectedRevision is RevisionViewModel;
 		}
 
-		private async Task RunBlockingAsync(string busyIndicatorText, Action action)
+		private Task RunBlockingAsync(string busyIndicatorText, Action action)
+		{
+			return RunBlockingAsync(busyIndicatorText, () => Task.Run(action));
+		}
+
+		private async Task RunBlockingAsync(string busyIndicatorText, Func<Task> action)
 		{
 			BusyIndicatorText = busyIndicatorText;
 			try
 			{
-				await Task.Run(action);
+				await action();
 			}
 			finally
 			{
